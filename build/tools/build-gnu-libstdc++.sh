@@ -153,9 +153,13 @@ build_gnustl_for_abi ()
         x86)
             BUILD_HOST=i686-android-linux
             ;;
+        mips)
+            BUILD_HOST=mips-linux-android
+            ;;
     esac
 
-    export CXXFLAGS="$CXXFLAGS --sysroot=$SYSROOT -fexceptions -frtti -D__BIONIC__ -O2"
+    export CFLAGS="-fPIC $CFLAGS --sysroot=$SYSROOT -fexceptions -D__BIONIC__ -O2"
+    export CXXFLAGS="-fPIC $CXXFLAGS --sysroot=$SYSROOT -fexceptions -frtti -D__BIONIC__ -O2"
 
     export CC=${BINPREFIX}gcc
     export CXX=${BINPREFIX}g++
@@ -178,10 +182,10 @@ build_gnustl_for_abi ()
     if [ $LIBTYPE = "static" ]; then
         # Ensure we disable visibility for the static library to reduce the
         # size of the code that will be linked against it.
-        LIBTYPE_FLAG="--enable-static --disable-shared --disable-visibility"
+        LIBTYPE_FLAGS="--enable-static --disable-shared --disable-visibility"
         CXXFLAGS=$CXXFLAGS" -fvisibility=hidden -fvisibility-inlines-hidden"
     else
-        LIBTYPE_FLAG="--disable-static --enable-shared"
+        LIBTYPE_FLAGS="--disable-static --enable-shared"
         #LDFLAGS=$LDFLAGS" -lsupc++"
     fi
 
