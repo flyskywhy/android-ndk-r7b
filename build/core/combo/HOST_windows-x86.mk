@@ -29,7 +29,8 @@ HOST_ACP_UNAVAILABLE := true
 TOOLS_PREFIX := /usr/bin/i586-mingw32msvc-
 TOOLS_EXE_SUFFIX :=
 HOST_GLOBAL_CFLAGS += -DUSE_MINGW
-HOST_C_INCLUDES += /usr/lib/gcc/i586-mingw32msvc/3.4.4/include
+HOST_C_INCLUDES += /usr/lib/gcc/i586-mingw32msvc/4.4.4/include \
+                   /usr/i686-mingw32/include/
 HOST_GLOBAL_LD_DIRS += -L/usr/i586-mingw32msvc/lib
 endif
 else
@@ -39,12 +40,14 @@ HOST_ACP_UNAVAILABLE := true
 HOST_GLOBAL_CFLAGS += -DUSE_MINGW
 HOST_C_INCLUDES += /mingw/include
 HOST_GLOBAL_LD_DIRS += -L/mingw/lib
+HOST_PRIVATE_SRC_EXECUTABLE_SUFFIX := .exe
 endif
 endif
 
 HOST_CC := $(TOOLS_PREFIX)gcc$(TOOLS_EXE_SUFFIX)
 HOST_CXX := $(TOOLS_PREFIX)g++$(TOOLS_EXE_SUFFIX)
 HOST_AR := $(TOOLS_PREFIX)ar$(TOOLS_EXE_SUFFIX)
+HOST_AWK := $(TOOLS_PREFIX)awk$(TOOLS_EXE_SUFFIX)
 
 HOST_GLOBAL_CFLAGS += -include $(call select-android-config-h,windows)
 HOST_GLOBAL_LDFLAGS += --enable-stdcall-fixup

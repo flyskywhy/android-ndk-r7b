@@ -136,6 +136,9 @@ else
     $(call ndk_log,Host OS from environment: $(HOST_OS))
 endif
 
+# BUILD_OS is the real host doing the build.
+BUILD_OS := $(HOST_OS)
+
 # For all systems, we will have HOST_OS_BASE defined as
 # $(HOST_OS), except on Cygwin where we will have:
 #
@@ -176,6 +179,15 @@ ifeq ($(HOST_OS),windows)
     endif
 endif
 
+# Under Linux, if USE_MINGW is set, we change HOST_OS to cygwin to build the
+# Windows applications.
+ifeq ($(HOST_OS),linux)
+ifneq ($(USE_MINGW),)
+    HOST_OS_BASE := windows
+    HOST_OS := cygwin
+endif
+endif
+
 ifneq ($(HOST_OS),$(HOST_OS_BASE))
     $(call ndk_log, Host operating system detected: $(HOST_OS), base OS: $(HOST_OS_BASE))
 else
@@ -187,6 +199,9 @@ ifndef HOST_ARCH
     ifeq ($(HOST_OS_BASE),windows)
         HOST_ARCH := $(PROCESSOR_ARCHITECTURE)
         ifeq ($(HOST_ARCH),AMD64)
+            HOST_ARCH := x86
+        endif
+        ifeq ($(HOST_OS),cygwin)
             HOST_ARCH := x86
         endif
     else # HOST_OS_BASE != windows
@@ -238,7 +253,11 @@ ifeq ($(HOST_TAG),windows-x86)
         endif
     endif
     # special-case the host-tag
+    ifeq ($(BUILD_OS),linux)
+    HOST_TAG := linux-x86
+    else
     HOST_TAG := windows
+    endif
 endif
 
 $(call ndk_log,HOST_TAG set to $(HOST_TAG))
