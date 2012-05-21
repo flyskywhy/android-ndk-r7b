@@ -1504,6 +1504,11 @@ module-class-is-prebuilt = $(if $(NDK_MODULE_CLASS.$1.PREBUILT),$(true),$(false)
 # <foo> -> lib<foo>.a by default
 $(call module-class-register,STATIC_LIBRARY,lib,.a)
 
+# host static libraries:
+# <foo> -> lib<foo>.a
+# a host static librarie is installable.
+$(call module-class-register-installable,HOST_STATIC_LIBRARY,lib,.a)
+
 # shared libraries:
 # <foo> -> lib<foo>.so
 # a shared library is installable.

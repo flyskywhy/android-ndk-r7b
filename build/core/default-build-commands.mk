@@ -115,6 +115,14 @@ HOST_ARFLAGS := crs
 HOST_STRIP    = strip
 
 ###########################################################
+## Commands for running host ar
+###########################################################
+
+define cmd-build-host-static-library
+$(PRIVATE_AR) $(call host-path,$@) $(call host-path,$(PRIVATE_ALL_OBJECTS))
+endef
+
+###########################################################
 ## Commands for running gcc to link a host executable
 ###########################################################
 

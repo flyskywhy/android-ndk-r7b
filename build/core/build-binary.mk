@@ -337,6 +337,18 @@ ALL_STATIC_LIBRARIES += $(LOCAL_BUILT_MODULE)
 endif
 
 #
+# If this is a host static library module
+#
+ifeq ($(call module-get-class,$(LOCAL_MODULE)),HOST_STATIC_LIBRARY)
+$(LOCAL_BUILT_MODULE): $(LOCAL_OBJECTS)
+	@ $(call host-mkdir,$(dir $@))
+	@ $(HOST_ECHO) "HostStaticLibrary  : $(PRIVATE_NAME)"
+	$(hide) $(cmd-build-host-static-library)
+
+ALL_STATIC_LIBRARIES += $(LOCAL_BUILT_MODULE)
+endif
+
+#
 # If this is a shared library module
 #
 ifeq ($(call module-get-class,$(LOCAL_MODULE)),SHARED_LIBRARY)
@@ -396,5 +408,7 @@ $(LOCAL_INSTALLED): $(LOCAL_BUILT_MODULE) clean-installed-binaries
 	@$(HOST_ECHO) "Install        : $(PRIVATE_NAME) => $(call pretty-dir,$(PRIVATE_DST))"
 	$(hide) $(call host-mkdir,$(PRIVATE_DST_DIR))
 	$(hide) $(call host-install,$(PRIVATE_SRC),$(PRIVATE_DST))
+ifneq ($(LOCAL_MODULE_CLASS), HOST_STATIC_LIBRARY)
 	$(hide) $(call cmd-strip, $(PRIVATE_DST))
+endif
 endif
