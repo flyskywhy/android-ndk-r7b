@@ -29,7 +29,7 @@ define select-android-config-h
 $(ANDROID_SYS_HEADERS)/system/core/include/arch/$(1)/AndroidConfig.h
 endef
 
-include $(BUILD_SYSTEM)/combo/HOST_$(HOST_OS)-$(HOST_ARCH).mk
+include $(BUILD_SYSTEM)/combo/HOST_$(HOST_OS_BASE)-$(HOST_ARCH).mk
 
 
 # LOCAL_MAKEFILE must also exist and name the Android.mk that
@@ -403,6 +403,11 @@ $(LOCAL_INSTALLED): PRIVATE_SRC     := $(LOCAL_BUILT_MODULE)
 $(LOCAL_INSTALLED): PRIVATE_DST_DIR := $(NDK_APP_DST_DIR)
 $(LOCAL_INSTALLED): PRIVATE_DST     := $(LOCAL_INSTALLED)
 $(LOCAL_INSTALLED): PRIVATE_STRIP   := $($(LOCAL_my)STRIP)
+ifeq ($(LOCAL_MODULE_CLASS), HOST_EXECUTABLE)
+$(LOCAL_INSTALLED): PRIVATE_NAME    := $(notdir $(LOCAL_BUILT_MODULE))$(HOST_EXECUTABLE_SUFFIX)
+$(LOCAL_INSTALLED): PRIVATE_SRC     := $(LOCAL_BUILT_MODULE)$(HOST_EXECUTABLE_SUFFIX)
+$(LOCAL_INSTALLED): PRIVATE_DST     := $(LOCAL_INSTALLED)$(HOST_EXECUTABLE_SUFFIX)
+endif
 
 $(LOCAL_INSTALLED): $(LOCAL_BUILT_MODULE) clean-installed-binaries
 	@$(HOST_ECHO) "Install        : $(PRIVATE_NAME) => $(call pretty-dir,$(PRIVATE_DST))"

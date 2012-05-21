@@ -32,6 +32,14 @@ HOST_GLOBAL_CFLAGS += -DUSE_MINGW
 HOST_C_INCLUDES += /usr/lib/gcc/i586-mingw32msvc/3.4.4/include
 HOST_GLOBAL_LD_DIRS += -L/usr/i586-mingw32msvc/lib
 endif
+else
+# Settings to use MinGW under Windows
+ifneq ($(strip $(USE_MINGW)),)
+HOST_ACP_UNAVAILABLE := true
+HOST_GLOBAL_CFLAGS += -DUSE_MINGW
+HOST_C_INCLUDES += /mingw/include
+HOST_GLOBAL_LD_DIRS += -L/mingw/lib
+endif
 endif
 
 HOST_CC := $(TOOLS_PREFIX)gcc$(TOOLS_EXE_SUFFIX)
