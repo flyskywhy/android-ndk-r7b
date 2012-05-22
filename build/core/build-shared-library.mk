@@ -25,7 +25,7 @@ $(call check-LOCAL_MODULE,$(LOCAL_MAKEFILE))
 $(call check-LOCAL_MODULE_FILENAME)
 
 # we are building target objects
-my := TARGET_
+LOCAL_my := TARGET_
 
 $(call handle-module-filename,lib,.so)
 $(call handle-module-built)

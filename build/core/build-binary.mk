@@ -17,11 +17,20 @@
 $(call assert-defined,LOCAL_MODULE)
 $(call module-restore-locals,$(LOCAL_MODULE))
 
-# For now, only support target (device-specific modules).
-# We may want to introduce support for host modules in the future
-# but that is too experimental for now.
 #
-my := TARGET_
+# ANDROID_SYS_HEADERS for host modules
+#
+ifeq ($(ANDROID_SYS_HEADERS),)
+$(call __ndk_info,If your app need contents from AndroidConfig.h (e.g. on linux host, adb.c need HAVE_FORKEXEC), please export ANDROID_SYS_HEADERS like http://github.com/flyskywhy/android-apps-host)
+endif
+
+# $(1): os/arch
+define select-android-config-h
+$(ANDROID_SYS_HEADERS)/system/core/include/arch/$(1)/AndroidConfig.h
+endef
+
+include $(BUILD_SYSTEM)/combo/HOST_$(HOST_OS)-$(HOST_ARCH).mk
+
 
 # LOCAL_MAKEFILE must also exist and name the Android.mk that
 # included the module build script.
@@ -43,7 +52,7 @@ clean: $(cleantarget)
 $(cleantarget): PRIVATE_MODULE      := $(LOCAL_MODULE)
 $(cleantarget): PRIVATE_TEXT        := [$(TARGET_ARCH_ABI)]
 $(cleantarget): PRIVATE_CLEAN_FILES := $(LOCAL_BUILT_MODULE) \
-                                       $($(my)OBJS)
+                                       $($(LOCAL_my)OBJS)
 
 $(cleantarget)::
 	@$(HOST_ECHO) "Clean: $(PRIVATE_MODULE) $(PRIVATE_TEXT)"
@@ -89,15 +98,15 @@ endif
 # of a binary that uses undefined symbols.
 #
 ifneq ($(LOCAL_ALLOW_UNDEFINED_SYMBOLS),true)
-  LOCAL_LDFLAGS += $($(my)NO_UNDEFINED_LDFLAGS)
+  LOCAL_LDFLAGS += $($(LOCAL_my)NO_UNDEFINED_LDFLAGS)
 endif
 
 # If LOCAL_DISABLE_NO_EXECUTE is not true, we disable generated code from running from
 # the heap and stack by default.
 #
 ifndef ($(LOCAL_DISABLE_NO_EXECUTE),true)
-  LOCAL_CFLAGS += $($(my)NO_EXECUTE_CFLAGS)
-  LOCAL_LDFLAGS += $($(my)NO_EXECUTE_LDFLAGS)
+  LOCAL_CFLAGS += $($(LOCAL_my)NO_EXECUTE_CFLAGS)
+  LOCAL_LDFLAGS += $($(LOCAL_my)NO_EXECUTE_LDFLAGS)
 endif
 
 #
@@ -251,6 +260,19 @@ ALL_DEPENDENCY_DIRS += $(sort $(LOCAL_DEPENDENCY_DIRS))
 CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 
 #
+# HOST_LIBS for host modules
+#
+STATIC_LIB_SUFFIX := .a
+
+built_static_libraries := \
+    $(foreach lib,$(LOCAL_STATIC_LIBRARIES), \
+      $(lib:%=$(HOST_LIBS)/%$(STATIC_LIB_SUFFIX)))
+
+built_whole_libraries := \
+    $(foreach lib,$(LOCAL_WHOLE_STATIC_LIBRARIES), \
+      $(lib:%=$(HOST_LIBS)/%$(STATIC_LIB_SUFFIX)))
+
+#
 # Handle the static and shared libraries this module depends on
 #
 LOCAL_STATIC_LIBRARIES       := $(call strip-lib-prefix,$(LOCAL_STATIC_LIBRARIES))
@@ -274,23 +296,31 @@ $(LOCAL_BUILT_MODULE): $(static_libraries) $(whole_static_libraries) $(shared_li
 # looks in the right location
 #
 ifneq ($(filter -l%,$(LOCAL_LDLIBS)),)
+ifeq ($(LOCAL_my),TARGET_)
     LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT)/usr/lib) $(LOCAL_LDLIBS)
 endif
+endif
 
+ifeq ($(LOCAL_my),HOST_)
+$(LOCAL_BUILT_MODULE): PRIVATE_ALL_STATIC_LIBRARIES := $(built_static_libraries) $(static_libraries)
+$(LOCAL_BUILT_MODULE): PRIVATE_ALL_WHOLE_STATIC_LIBRARIES := $(built_whole_libraries) $(whole_static_libraries)
+$(LOCAL_BUILT_MODULE): PRIVATE_ALL_SHARED_LIBRARIES := $(shared_libraries)
+$(LOCAL_BUILT_MODULE): PRIVATE_ALL_OBJECTS          := $(LOCAL_OBJECTS)
+endif
 $(LOCAL_BUILT_MODULE): PRIVATE_STATIC_LIBRARIES := $(static_libraries)
 $(LOCAL_BUILT_MODULE): PRIVATE_WHOLE_STATIC_LIBRARIES := $(whole_static_libraries)
 $(LOCAL_BUILT_MODULE): PRIVATE_SHARED_LIBRARIES := $(shared_libraries)
 $(LOCAL_BUILT_MODULE): PRIVATE_OBJECTS          := $(LOCAL_OBJECTS)
-$(LOCAL_BUILT_MODULE): PRIVATE_LIBGCC := $(TARGET_LIBGCC)
+$(LOCAL_BUILT_MODULE): PRIVATE_LIBGCC := $($(LOCAL_my)LIBGCC)
 
-$(LOCAL_BUILT_MODULE): PRIVATE_LD := $(TARGET_LD)
-$(LOCAL_BUILT_MODULE): PRIVATE_LDFLAGS := $(TARGET_LDFLAGS) $(LOCAL_LDFLAGS)
-$(LOCAL_BUILT_MODULE): PRIVATE_LDLIBS  := $(LOCAL_LDLIBS) $(TARGET_LDLIBS)
+$(LOCAL_BUILT_MODULE): PRIVATE_LD := $($(LOCAL_my)LD)
+$(LOCAL_BUILT_MODULE): PRIVATE_LDFLAGS := $($(LOCAL_my)LDFLAGS) $(LOCAL_LDFLAGS)
+$(LOCAL_BUILT_MODULE): PRIVATE_LDLIBS  := $(LOCAL_LDLIBS) $($(LOCAL_my)LDLIBS)
 
 $(LOCAL_BUILT_MODULE): PRIVATE_NAME := $(notdir $(LOCAL_BUILT_MODULE))
-$(LOCAL_BUILT_MODULE): PRIVATE_CXX := $(TARGET_CXX)
-$(LOCAL_BUILT_MODULE): PRIVATE_CC := $(TARGET_CC)
-$(LOCAL_BUILT_MODULE): PRIVATE_AR := $(TARGET_AR) $(TARGET_ARFLAGS)
+$(LOCAL_BUILT_MODULE): PRIVATE_CXX := $($(LOCAL_my)CXX)
+$(LOCAL_BUILT_MODULE): PRIVATE_CC := $($(LOCAL_my)CC)
+$(LOCAL_BUILT_MODULE): PRIVATE_AR := $($(LOCAL_my)AR) $($(LOCAL_my)ARFLAGS)
 $(LOCAL_BUILT_MODULE): PRIVATE_SYSROOT := $(SYSROOT)
 
 #
@@ -331,6 +361,18 @@ ALL_EXECUTABLES += $(LOCAL_BUILT_MODULE)
 endif
 
 #
+# If this is a host executable module
+#
+ifeq ($(call module-get-class,$(LOCAL_MODULE)),HOST_EXECUTABLE)
+$(LOCAL_BUILT_MODULE): $(LOCAL_OBJECTS)
+	@ $(call host-mkdir,$(dir $@))
+	@ $(HOST_ECHO) "HostExecutable     : $(PRIVATE_NAME)"
+	$(hide) $(transform-host-o-to-executable)
+
+ALL_EXECUTABLES += $(LOCAL_BUILT_MODULE)
+endif
+
+#
 # If this is a prebuilt module
 #
 ifeq ($(call module-is-prebuilt,$(LOCAL_MODULE)),$(true))
@@ -348,7 +390,7 @@ $(LOCAL_INSTALLED): PRIVATE_NAME    := $(notdir $(LOCAL_BUILT_MODULE))
 $(LOCAL_INSTALLED): PRIVATE_SRC     := $(LOCAL_BUILT_MODULE)
 $(LOCAL_INSTALLED): PRIVATE_DST_DIR := $(NDK_APP_DST_DIR)
 $(LOCAL_INSTALLED): PRIVATE_DST     := $(LOCAL_INSTALLED)
-$(LOCAL_INSTALLED): PRIVATE_STRIP   := $(TARGET_STRIP)
+$(LOCAL_INSTALLED): PRIVATE_STRIP   := $($(LOCAL_my)STRIP)
 
 $(LOCAL_INSTALLED): $(LOCAL_BUILT_MODULE) clean-installed-binaries
 	@$(HOST_ECHO) "Install        : $(PRIVATE_NAME) => $(call pretty-dir,$(PRIVATE_DST))"

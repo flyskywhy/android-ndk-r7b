@@ -73,8 +73,8 @@ endef
 # when applied to static libraries or object files.
 cmd-strip = $(PRIVATE_STRIP) --strip-unneeded $(call host-path,$1)
 
-TARGET_LIBGCC = $(shell $(TARGET_CC) -print-libgcc-file-name)
-TARGET_LDLIBS := -lc -lm
+$(LOCAL_my)_LIBGCC = $(shell $($(LOCAL_my)_CC) -print-libgcc-file-name)
+$(LOCAL_my)_LDLIBS := -lc -lm
 
 #
 # IMPORTANT: The following definitions must use lazy assignment because
@@ -95,3 +95,52 @@ TARGET_AR       = $(TOOLCHAIN_PREFIX)ar
 TARGET_ARFLAGS := crs
 
 TARGET_STRIP    = $(TOOLCHAIN_PREFIX)strip
+
+#
+# host toolchain
+#
+
+HOST_CC       = gcc
+HOST_CFLAGS   =
+
+HOST_CXX      = g++
+HOST_CXXFLAGS = $(HOST_CFLAGS) -fno-exceptions -fno-rtti
+
+HOST_LD       = ld
+HOST_LDFLAGS :=
+
+HOST_AR       = ar
+HOST_ARFLAGS := crs
+
+HOST_STRIP    = strip
+
+###########################################################
+## Commands for running gcc to link a host executable
+###########################################################
+
+ifneq ($(HOST_CUSTOM_LD_COMMAND),true)
+define transform-host-o-to-executable-inner
+$(PRIVATE_CXX) \
+	-Wl,-rpath-link=$(TARGET_OUT_INTERMEDIATE_LIBRARIES) \
+	-Wl,-rpath,\$$ORIGIN/../lib \
+	$(HOST_GLOBAL_LD_DIRS) \
+	$(PRIVATE_LDFLAGS) \
+	$(if $(PRIVATE_NO_DEFAULT_COMPILER_FLAGS),, \
+		$(HOST_GLOBAL_LDFLAGS) \
+	) \
+	$(PRIVATE_ALL_OBJECTS) \
+	-Wl,--whole-archive \
+	$(call normalize-host-libraries,$(PRIVATE_ALL_WHOLE_STATIC_LIBRARIES)) \
+	-Wl,--no-whole-archive \
+	$(call normalize-host-libraries,$(PRIVATE_ALL_STATIC_LIBRARIES)) \
+	$(call normalize-host-libraries,$(PRIVATE_ALL_SHARED_LIBRARIES)) \
+	-o $@ \
+	$(PRIVATE_LDLIBS)
+endef
+endif
+
+define transform-host-o-to-executable
+@mkdir -p $(dir $@)
+@echo "host Executable: $(PRIVATE_MODULE) ($@)"
+$(hide) $(transform-host-o-to-executable-inner)
+endef

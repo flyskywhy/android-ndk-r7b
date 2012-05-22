@@ -13,22 +13,22 @@
 # limitations under the License.
 #
 
-# this file is included from Android.mk files to build a target-specific
-# static library
+# this file is included from Android.mk files to build a host-specific
+# executable program
 #
 
-LOCAL_BUILD_SCRIPT := BUILD_STATIC_LIBRARY
+LOCAL_BUILD_SCRIPT := BUILD_HOST_EXECUTABLE
 LOCAL_MAKEFILE     := $(local-makefile)
 
 $(call check-defined-LOCAL_MODULE,$(LOCAL_BUILD_SCRIPT))
 $(call check-LOCAL_MODULE,$(LOCAL_MAKEFILE))
+$(call check-LOCAL_MODULE_FILENAME)
 
-# we are building target objects
-LOCAL_my := TARGET_
+# we are building host objects
+LOCAL_my := HOST_
 
-$(call handle-module-filename,lib,.a)
+$(call handle-module-filename,,)
 $(call handle-module-built)
 
-LOCAL_MODULE_CLASS := STATIC_LIBRARY
+LOCAL_MODULE_CLASS := HOST_EXECUTABLE
 include $(BUILD_SYSTEM)/build-module.mk
-
