@@ -149,6 +149,5 @@ endif
 
 define transform-host-o-to-executable
 @mkdir -p $(dir $@)
-@echo "host Executable: $(PRIVATE_MODULE) ($@)"
 $(hide) $(transform-host-o-to-executable-inner)
 endef
