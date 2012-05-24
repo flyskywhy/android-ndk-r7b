@@ -1,4 +1,4 @@
-# Android NDK r7b with host modules support (>100MB)
+# Android NDK r7b with host modules (and MIPS) support (>100MB)
 
 Google's Android NDK only support target (device-specific modules).
 
